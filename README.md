@@ -49,7 +49,7 @@ Right-click any image or video → **Quick Actions** → pick a MediaScrub mode.
 ## Pricing
 
 - **Free**: 1 scrub per day
-- **Unlimited**: $1/month
+- **Unlimited**: [$1/month](https://buy.stripe.com/4gM5kCezo5lSdmMe6a2cg03)
 
 ```bash
 mediascrub activate <your_license_key>
