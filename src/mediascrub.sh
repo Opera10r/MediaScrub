@@ -186,38 +186,63 @@ process_video() {
         return 1
     fi
 
+    # Check if video has audio
+    local has_audio=false
+    if [[ -n "$FFPROBE" ]]; then
+        local audio_streams
+        audio_streams=$("$FFPROBE" -v quiet -select_streams a -show_entries stream=codec_type -of csv=p=0 "$input" 2>/dev/null)
+        [[ -n "$audio_streams" ]] && has_audio=true
+    fi
+
     local video_args=()
     local audio_args=()
+    local scale_filter=""
 
     case "$mode" in
         strip)
             # Strip metadata only, copy streams
             video_args=(-c:v copy)
-            audio_args=(-c:a copy)
+            if [[ "$has_audio" == true ]]; then
+                audio_args=(-c:a copy)
+            else
+                audio_args=(-an)
+            fi
             ;;
         tiktok)
-            # TikTok: H.264, 30fps, yuv420p, AAC stereo, max 1080p
-            video_args=(-c:v libx264 -preset medium -crf 23 -pix_fmt yuv420p
-                        -r 30 -vf "scale='min(1080,iw)':'min(1920,ih)':force_original_aspect_ratio=decrease,pad=ceil(iw/2)*2:ceil(ih/2)*2")
-            audio_args=(-c:a aac -b:a 128k -ar 44100 -ac 2)
+            scale_filter="scale=min(1080\,iw):min(1920\,ih):force_original_aspect_ratio=decrease,pad=ceil(iw/2)*2:ceil(ih/2)*2"
+            video_args=(-c:v libx264 -preset medium -crf 23 -pix_fmt yuv420p -r 30 -vf "$scale_filter")
+            if [[ "$has_audio" == true ]]; then
+                audio_args=(-c:a aac -b:a 128k -ar 44100 -ac 2)
+            else
+                audio_args=(-an)
+            fi
             ;;
         instagram)
-            # Instagram: H.264, 30fps, yuv420p, AAC stereo, max 1080p
-            video_args=(-c:v libx264 -preset medium -crf 22 -pix_fmt yuv420p
-                        -r 30 -vf "scale='min(1080,iw)':'min(1080,ih)':force_original_aspect_ratio=decrease,pad=ceil(iw/2)*2:ceil(ih/2)*2")
-            audio_args=(-c:a aac -b:a 128k -ar 44100 -ac 2)
+            scale_filter="scale=min(1080\,iw):min(1080\,ih):force_original_aspect_ratio=decrease,pad=ceil(iw/2)*2:ceil(ih/2)*2"
+            video_args=(-c:v libx264 -preset medium -crf 22 -pix_fmt yuv420p -r 30 -vf "$scale_filter")
+            if [[ "$has_audio" == true ]]; then
+                audio_args=(-c:a aac -b:a 128k -ar 44100 -ac 2)
+            else
+                audio_args=(-an)
+            fi
             ;;
         youtube)
-            # YouTube: H.264 High, 60fps preserved, yuv420p, AAC stereo
-            video_args=(-c:v libx264 -preset medium -crf 20 -profile:v high -pix_fmt yuv420p
-                        -vf "scale='min(3840,iw)':'min(2160,ih)':force_original_aspect_ratio=decrease,pad=ceil(iw/2)*2:ceil(ih/2)*2")
-            audio_args=(-c:a aac -b:a 192k -ar 48000 -ac 2)
+            scale_filter="scale=min(3840\,iw):min(2160\,ih):force_original_aspect_ratio=decrease,pad=ceil(iw/2)*2:ceil(ih/2)*2"
+            video_args=(-c:v libx264 -preset medium -crf 20 -profile:v high -pix_fmt yuv420p -vf "$scale_filter")
+            if [[ "$has_audio" == true ]]; then
+                audio_args=(-c:a aac -b:a 192k -ar 48000 -ac 2)
+            else
+                audio_args=(-an)
+            fi
             ;;
         web)
-            # Generic web: H.264 Main, 30fps, yuv420p, AAC stereo, max 1080p
-            video_args=(-c:v libx264 -preset medium -crf 23 -profile:v main -pix_fmt yuv420p
-                        -r 30 -vf "scale='min(1920,iw)':'min(1080,ih)':force_original_aspect_ratio=decrease,pad=ceil(iw/2)*2:ceil(ih/2)*2")
-            audio_args=(-c:a aac -b:a 128k -ar 44100 -ac 2)
+            scale_filter="scale=min(1920\,iw):min(1080\,ih):force_original_aspect_ratio=decrease,pad=ceil(iw/2)*2:ceil(ih/2)*2"
+            video_args=(-c:v libx264 -preset medium -crf 23 -profile:v main -pix_fmt yuv420p -r 30 -vf "$scale_filter")
+            if [[ "$has_audio" == true ]]; then
+                audio_args=(-c:a aac -b:a 128k -ar 44100 -ac 2)
+            else
+                audio_args=(-an)
+            fi
             ;;
     esac
 
